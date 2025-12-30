@@ -1,49 +1,53 @@
-# Estructura inicial del personaje
-personaje = {
-    "nombre": "Jorge el Valiente",
-    "clase": "Guerrero",
-    "nivel": 1,
-    "atributos": {
-        "fuerza": 18,
-        "porcentaje_fuerza": 50,  # El famoso 18/50
-        "destreza": 12,
-        "constitucion": 15,
-        "inteligencia": 10,
-        "sabiduria": 8,
-        "carisma": 14
-    },
-    "vida_maxima": 10,
-    "gaco": 20
-}
-
-print(f"Personaje: {personaje['nombre']} - Clase: {personaje['clase']}")
-
-# Tabla de bonificadores de Fuerza (Simplificada para probar)
+# Tabla de bonificadores de Fuerza 
 # Estructura: valor: (ajuste_ataque, ajuste_daño)
-def calcular_bonos_fuerza(valor, porcentaje=0):
-    # Primero chequeamos si es fuerza 18
+def calcular_bonos_fuerza(valor, clase, porcentaje=0):
     if valor == 18:
-        if porcentaje == 0:
-            return {"ataque": 1, "daño": 2, "desc": "18 normal"}
-        elif 1 <= porcentaje <= 50:
-            return {"ataque": 1, "daño": 3, "desc": "18/01-50"}
+        if clase.lower() != "guerrero":
+            return {"golpe": 1, "ajuste_daño": 2, "desc": "18 Normal"}
+        
+        if 1 <= porcentaje <= 50:
+            return {"golpe": 1, "ajuste_daño": 3, "desc": "18/01-50"}
         elif 51 <= porcentaje <= 75:
-            return {"ataque": 2, "daño": 3, "desc": "18/51-75"}
+            return {"golpe": 2, "ajuste_daño": 3, "desc": "18/51-75"}
         elif 76 <= porcentaje <= 90:
-            return {"ataque": 2, "daño": 4, "desc": "18/76-90"}
+            return {"golpe": 2, "ajuste_daño": 4, "desc": "18/76-90"}
         elif 91 <= porcentaje <= 99:
-            return {"ataque": 2, "daño": 5, "desc": "18/91-99"}
+            return {"golpe": 2, "ajuste_daño": 5, "desc": "18/91-99"}
         elif porcentaje == 100:
-            return {"ataque": 3, "daño": 6, "desc": "18/00 (¡Bestial!)"}
+            return {"golpe": 3, "ajuste_daño": 6, "desc": "18/00 (¡Bestial!)"}
     
-    return {"ataque": 0, "daño": 0, "desc": "Fuerza estándar"}
+    return {"golpe": 0, "ajuste_daño": 0, "desc": "Fuerza estándar"}
 
-# Hagamos una prueba rápida:
-mi_fuerza = 18
-mi_porcentaje = 100 # Probemos el 18/00
+# 1. Pedir el Nombre (Esto es texto, no necesita int)
+nombre_pj = input("¿Cual es el nombre de tu heroe? ")
 
-resultado = calcular_bonos_fuerza(mi_fuerza, mi_porcentaje)
+# 2. Pedimos la clase
+clase_pj = input("¿Cual es la clase de tu personaje? (Guerrero, Mago, etc.): ")
 
-print(f"Resultado para {resultado['desc']}:")
-print(f"Bono al ataque: +{resultado['ataque']}")
-print(f"Bono al daño: +{resultado['daño']}")
+# 3. Pedimos la fuerza
+fuerza_pj = int(input("¿Que fuerza tiene? (3-18): "))
+
+# Aquí aplicamos TU lógica:
+porcentaje_pj = 0
+# Solo si es Guerrero (Luchador) Y tiene 18, pedimos porcentaje
+if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
+    porcentaje_pj = int(input("¡Fuerza excepcional de Guerrero! Poné el porcentaje (1-100): "))
+
+# 4. Cálculo de los bonos
+bonos = calcular_bonos_fuerza(fuerza_pj, clase_pj, porcentaje_pj)
+
+# Preparamos el texto de la fuerza (si es 18 y guerrero, sumamos el porcentaje)
+if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
+    fuerza_texto = f"{fuerza_pj}/{'00' if porcentaje_pj == 100 else porcentaje_pj}"
+else:
+    fuerza_texto = f"{fuerza_pj}"
+
+# LA LÍNEA MÁGICA (Todo en un solo renglón)
+print("\n" + "="*55)
+print(f" FICHA DE PERSONAJE: {nombre_pj.upper()} ")
+print("="*55)
+print(f"CLASE: {clase_pj.capitalize()}")
+print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
+print("-" * 55)
+print(f"FUE: {fuerza_texto:<7} Probab. Golpe: +{bonos['golpe']}   Ajuste Daño: +{bonos['ajuste_daño']}")
+print("="*55)
