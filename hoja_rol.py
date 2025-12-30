@@ -9,44 +9,68 @@ TABLA_RAZAS = {
     "gnomo":  {"FUE": 0, "DES": 0, "CON": 0, "INT": 1, "SAB": -1, "CAR": 0}, # Depende de la subraza, pero usemos esta
     "halfling": {"FUE": -1, "DES": 1, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0}
 }
-# Tabla de bonificadores de Fuerza 
-# Estructura: valor: (ajuste_ataque, ajuste_daño)
+# Tabla de bonificadores de Fuerza
 def calcular_bonos_fuerza(valor, clase, porcentaje=0):
-    # Valores Bajos
-    if valor <= 3:
-        return {"golpe": -3, "ajuste_daño": -1, "desc": "Paupérrima"}
-    elif 4 <= valor <= 5:
-        return {"golpe": -2, "ajuste_daño": -1, "desc": "Muy Débil"}
-    elif 6 <= valor <= 7:
-        return {"golpe": -1, "ajuste_daño": 0, "desc": "Muy Débil"}
-    elif 8 <= valor <= 9:
-        return {"golpe": 0, "ajuste_daño": 0, "desc": "Muy Débil"}
-    elif 10 <= valor <= 11:
-        return {"golpe": 0, "ajuste_daño": 0, "desc": "Muy Débil"}
-    elif 12 <= valor <= 13:
-        return {"golpe": 0, "ajuste_daño": 0, "desc": "Muy Débil"}
-    elif 14 <= valor <= 15:
-        return {"golpe": 0, "ajuste_daño": 0, "desc": "Muy Débil"}
-    elif valor == 16:
-        return {"golpe": 0, "ajuste_daño": +1, "desc": "Muy Débil"}
-    elif valor == 17:
-        return {"golpe": +1, "ajuste_daño": +1, "desc": "Muy Débil"}
-    elif valor == 18:
-        if clase.lower() != "guerrero":
-            return {"golpe": +1, "ajuste_daño": +2, "desc": "18 Normal"}
-        
+    # Formato: (golpe, daño, peso_perm, esfuerzo_max, abrir_puertas, barras_rejas, nota)
+    tablas = {
+        1:  (-5, -4, 1, 3, "1", 0, ""),
+        2:  (-3, -2, 2, 5, "1", 0, ""),
+        3:  (-3, -1, 5, 10, "2", 0, ""),
+        4:  (-2, -1, 10, 25, "3", 0, ""),
+        5:  (-2, -1, 10, 25, "3", 0, ""),
+        6:  (-1, 0, 20, 55, "4", 0, ""),
+        7:  (-1, 0, 20, 55, "4", 0, ""),
+        8:  (0, 0, 35, 90, "5", 1, ""),
+        9:  (0, 0, 35, 90, "5", 1, ""),
+        10: (0, 0, 40, 115, "6", 2, ""),
+        11: (0, 0, 40, 115, "6", 2, ""),
+        12: (0, 0, 45, 140, "7", 4, ""),
+        13: (0, 0, 45, 140, "7", 4, ""),
+        14: (0, 0, 55, 170, "8", 7, ""),
+        15: (0, 0, 55, 170, "8", 7, ""),
+        16: (0, 1, 70, 195, "9", 10, ""),
+        17: (1, 1, 85, 220, "10", 13, ""),
+        18: (1, 2, 110, 280, "11", 16, ""),
+        # Fuerza Excepcional (Luchadores) 
+        "18/50": (1, 3, 135, 380, "12", 20, "Excepcional"),
+        "18/75": (2, 3, 160, 530, "13", 25, "Excepcional"),
+        "18/90": (2, 4, 185, 640, "14", 30, "Excepcional"),
+        "18/99": (2, 5, 235, 750, "15(3)", 35, "Excepcional"),
+        "18/00": (3, 6, 335, 1000, "16(6)", 40, "Bestial"), # El famoso 18/00
+        # Fuerzas de Gigante (19+)
+        19: (3, 7, 485, 1500, "16(8)", 50, "Gigante Colinas"), # Gigante de las Colinas 
+        20: (3, 8, 535, 2000, "17(10)", 60, "Gigante Piedra"), # Gigante de Piedra 
+        21: (4, 9, 635, 2500, "17(12)", 70, "Gigante Escarchas"), # Gigante de las Escarchas 
+        22: (4, 10, 785, 3000, "18(14)", 80, "Gigante Fuego"), # Gigante de Fuego 
+        23: (5, 11, 935, 4000, "18(16)", 90, "Gigante Nubes"), # Gigante de las Nubes 
+        24: (6, 12, 1235, 5000, "19(17)", 95, "Gigante Tormentas"), # Gigante de las Tormentas 
+        25: (7, 14, 1535, 7500, "19(18)", 99, "Titán") # Titán 
+    }
+
+    clave = valor
+    if valor == 18 and clase.lower() == "guerrero":
         if 1 <= porcentaje <= 50:
-            return {"golpe": +1, "ajuste_daño": +3, "desc": "18/01-50"}
+            clave = "18/50"
         elif 51 <= porcentaje <= 75:
-            return {"golpe": +2, "ajuste_daño": +3, "desc": "18/51-75"}
+            clave = "18/75"
         elif 76 <= porcentaje <= 90:
-            return {"golpe": +2, "ajuste_daño": +4, "desc": "18/76-90"}
+            clave = "18/90"
         elif 91 <= porcentaje <= 99:
-            return {"golpe": +2, "ajuste_daño": +5, "desc": "18/91-99"}
+            clave = "18/99"
         elif porcentaje == 100:
-            return {"golpe": +3, "ajuste_daño": +6, "desc": "18/00 (¡Bestial!)"}
-    
-    return {"golpe": 0, "ajuste_daño": 0, "desc": "Fuerza estándar"}
+            clave = "18/00"
+
+    res = tablas.get(clave, (0, 0, 40, 115, "6", 2, ""))
+
+    return {
+        "golpe": res[0],
+        "ajuste_daño": res[1],
+        "peso_perm": res[2],
+        "esfuerzo_max": res[3],
+        "abrir_puertas": res[4],
+        "barras_rejas": res[5],
+        "nota": res[6]
+    }
 
 def calcular_bonos_destreza(valor):
     # Tabla simplificada de AD&D 2.5
@@ -223,10 +247,18 @@ print("="*55)
 print(f"CLASE: {clase_pj.capitalize()} RAZA: {raza_pj.capitalize()}")
 print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
 print("-" * 55)
-print(f"FUE: {fuerza_texto:<7} Probab. golpe: {bonos_fue['golpe']}   Ajuste daño: {bonos_fue['ajuste_daño']}")
+print(f"FUE: {fuerza_pj:<2} ({porcentaje_pj if porcentaje_pj > 0 else '--':>2}) | Golpe: {bonos_fue['golpe']:>2} | Daño: {bonos_fue['ajuste_daño']:>2} | Carga: {bonos_fue['peso_perm']:>3}/{bonos_fue['esfuerzo_max']:>4} | Puertas: {bonos_fue['abrir_puertas']:>5} | Barras: {bonos_fue['barras_rejas']:>2}%")
+if bonos_fue['nota']:
+    print(f"      [ NOTA: {bonos_fue['nota']} ]")
 print(f"DES: {destreza_pj:<7} Ajuste reacción: {bonos_des['reaccion']:>2}   Ajuste ataque proyect.: {bonos_des['proyectil']:>2}   Ajuste defensivo: {bonos_des['defensa']:>2}")
 print(f"CON: {constitucion_pj:<7} Ajuste punto golpe: {bonos_con['ajuste_pg']:>2}")
 print(f"INT: {inteligencia_pj:<7} Núm. de lenguajes: {bonos_int['lenguajes']:>2}")
 print(f"SAB: {sabiduria_pj:<7} Ajuste defensa magica: {bonos_sab['def_mental']:>2}")
 print(f"CAR: {carisma_pj:<7} Núm. máx. servidores: {bonos_car['seguidores']:>2}   Lealtad básica: {bonos_car['lealtad']:>2}   Ajuste de reacción: {bonos_car['reaccion']:>2}")
 print("="*55)
+if bonos_fue['nota']:
+    print(f"NOTAS DE FUERZA: {bonos_fue['nota']}")
+
+print(f"CARGA: {bonos_fue['peso_perm']} lbs (Máx: {bonos_fue['esfuerzo_max']})")
+print(f"ACCIONES: Abrir Puertas: {bonos_fue['abrir_puertas']}/20 | Barras/Rejas: {bonos_fue['barras_rejas']}%")
+print("=" * 55)
