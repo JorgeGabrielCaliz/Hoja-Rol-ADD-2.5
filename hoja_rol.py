@@ -56,6 +56,28 @@ def calcular_bonos_destreza(valor):
     
     return {"reaccion": 0, "proyectil": 0, "defensa": 0}
 
+def calcular_bonos_constitucion(valor, clase):
+    # Tabla de Ajuste de Puntos de Golpe (PG)
+    if valor <= 3:
+        ajuste_pg = -2
+    elif 4 <= valor <= 6:
+        ajuste_pg = -1
+    elif 7 <= valor <= 14:
+        ajuste_pg = 0
+    elif valor == 15:
+        ajuste_pg = 1
+    elif valor == 16:
+        ajuste_pg = 2
+        # Aquí empieza la diferencia para los Luchadores
+    elif valor == 17:
+        ajuste_pg = 3 if clase.lower() == "guerrero" else 2
+    elif valor >= 18:
+        ajuste_pg = 4 if clase.lower() == "guerrero" else 2
+    else:
+        ajuste_pg = 0
+        
+    return {"ajuste_pg": ajuste_pg}
+
 # 1. Pedir el Nombre
 nombre_pj = input("¿Cual es el nombre de tu heroe? ")
 
@@ -74,9 +96,13 @@ if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
 # 3.1 Pedir la destreza
 destreza_pj = int(input("¿Que destreza tiene? (3-18): "))
 
+# 3.2 Pedir la constitucion
+constitucion_pj = int(input("¿Que constitucion tiene? (3-18): "))
+
 # 4. Cálculo de los bonos
 bonos = calcular_bonos_fuerza(fuerza_pj, clase_pj, porcentaje_pj)
 bonos_des = calcular_bonos_destreza(destreza_pj)
+bonos_con = calcular_bonos_constitucion(constitucion_pj, clase_pj)
 
 # Preparamos el texto de la fuerza (si es 18 y guerrero, sumamos el porcentaje)
 if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
@@ -93,4 +119,5 @@ print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
 print("-" * 55)
 print(f"FUE: {fuerza_texto:<7} Probab. golpe: {bonos['golpe']}   Ajuste daño: {bonos['ajuste_daño']}")
 print(f"DES: {destreza_pj:<7} Ajuste reacción: {bonos_des['reaccion']:>2}   Ajuste ataque proyect.: {bonos_des['proyectil']:>2}   Ajuste defensivo: {bonos_des['defensa']:>2}")
+print(f"CON: {constitucion_pj:<7} Ajuste punto golpe: {bonos_con['ajuste_pg']:>2}")
 print("="*55)
