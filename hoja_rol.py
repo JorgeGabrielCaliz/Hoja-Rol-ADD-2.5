@@ -1,5 +1,14 @@
 import os
 
+# Tabla de modificadores raciales
+TABLA_RAZAS = {
+    "humano": {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0},
+    "Semielfo": {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0},
+    "elfo":   {"FUE": 0, "DES": 1, "CON": -1, "INT": 0, "SAB": 0, "CAR": 0},
+    "enano":  {"FUE": 0, "DES": 0, "CON": 1, "INT": 0, "SAB": 0, "CAR": -1},
+    "gnomo":  {"FUE": 0, "DES": 0, "CON": 0, "INT": 1, "SAB": -1, "CAR": 0}, # Depende de la subraza, pero usemos esta
+    "halfling": {"FUE": -1, "DES": 1, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0}
+}
 # Tabla de bonificadores de Fuerza 
 # Estructura: valor: (ajuste_ataque, ajuste_daño)
 def calcular_bonos_fuerza(valor, clase, porcentaje=0):
@@ -43,9 +52,9 @@ def calcular_bonos_destreza(valor):
     # Tabla simplificada de AD&D 2.5
     if valor <= 2:
         return {"reaccion": -5, "proyectil": -5, "defensa": 5}
-    elif 3 <= valor <= 5:
+    elif 3 <= valor <= 6:
         return {"reaccion": -3, "proyectil": -3, "defensa": 3}
-    elif 6 <= valor <= 14:
+    elif 7 <= valor <= 14:
         return {"reaccion": 0, "proyectil": 0, "defensa": 0}
     elif valor == 15:
         return {"reaccion": 0, "proyectil": 0, "defensa": -1}
@@ -54,7 +63,13 @@ def calcular_bonos_destreza(valor):
     elif valor == 17:
         return {"reaccion": 2, "proyectil": 2, "defensa": -3}
     elif valor == 18:
+        return {"reaccion": 2, "proyectil": 2, "defensa": -4}
+    elif valor == 19:
         return {"reaccion": 3, "proyectil": 3, "defensa": -4}
+    elif valor == 20:
+        return {"reaccion": 3, "proyectil": 3, "defensa": -4}
+    elif valor == 21:
+        return {"reaccion": 4, "proyectil": 4, "defensa": -5}
     
     return {"reaccion": 0, "proyectil": 0, "defensa": 0}
 
@@ -151,35 +166,38 @@ def calcular_bonos_carisma(valor):
     
     return {"seguidores": 0, "lealtad": 0, "reaccion": 0}
 
-# 1. Pedir el Nombre
+# 1. Datos básicos
 nombre_pj = input("¿Cual es el nombre de tu heroe? ")
+raza_pj = input("¿Cual es tu raza? (Humano, Elfo, Semielfo, Enano, Gnomo, Halfling): ").lower()
+clase_pj = input("¿Cual es tu clase? (Guerrero, Mago, etc.): ")
 
-# 2. Pedir la clase
-clase_pj = input("¿Cual es la clase de tu personaje? (Guerrero, Mago, etc.): ")
+# 2. Pedir Atributos "Base" (lo que salió en los dados)
+fuerza_base = int(input("Fuerza base (3-18): "))
+destreza_base = int(input("Destreza base (3-18): "))
+constitucion_base = int(input("Constitucion base (3-18): "))
+inteligencia_base = int(input("Inteligencia base (3-18): "))
+sabiduria_base = int(input("Sabiduria base (3-18): "))
+carisma_base = int(input("Carisma base (3-18): "))
 
-# 3.0 Pedir la fuerza
-fuerza_pj = int(input("¿Que fuerza tiene? (3-18): "))
+  
+# 3. APLICAR MODIFICADORES RACIALES
+# Buscamos los bonos de la raza elegida (si no existe, usamos 0)
+bonos_raza = TABLA_RAZAS.get(raza_pj, {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0})
 
-# Se aplica la logica de la clases luchador:
+fuerza_pj = fuerza_base + bonos_raza.get("FUE", 0)
+destreza_pj = destreza_base + bonos_raza.get("DES", 0)
+constitucion_pj = constitucion_base + bonos_raza.get("CON", 0)
+inteligencia_pj = inteligencia_base + bonos_raza.get("INT", 0)
+sabiduria_pj = sabiduria_base + bonos_raza.get("SAB", 0)
+carisma_pj = carisma_base + bonos_raza.get("CAR", 0)
+
+
+# 3.1 Se aplica la logica de la clases luchador:
 porcentaje_pj = 0
 # Solo si es Guerrero (Luchador) Y tiene 18, pedimos porcentaje
 if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
     porcentaje_pj = int(input("¡Fuerza excepcional de Luchador! Poné el porcentaje (1-100): "))
-    
-# 3.1 Pedir la destreza
-destreza_pj = int(input("¿Que destreza tiene? (3-18): "))
 
-# 3.2 Pedir la constitucion
-constitucion_pj = int(input("¿Que constitucion tiene? (3-18): "))
-
-# 3.3 Pedir la inteligencia
-inteligencia_pj = int(input("¿Que inteligencia tiene? (3-18): "))
-
-# 3.4 Pedir la sabiduria
-sabiduria_pj = int(input("¿Que sabiduria tiene? (3-18): "))
-
-# 3.4 Pedir el carisma
-carisma_pj = int(input("¿Que carisma tiene? (3-18): "))
 
 # 4. Cálculo de los bonos
 bonos_fue = calcular_bonos_fuerza(fuerza_pj, clase_pj, porcentaje_pj)
@@ -202,7 +220,7 @@ os.system('cls' if os.name == 'nt' else 'clear')
 print("\n" + "="*55)
 print(f" FICHA DE PERSONAJE: {nombre_pj.upper()} ")
 print("="*55)
-print(f"CLASE: {clase_pj.capitalize()}")
+print(f"CLASE: {clase_pj.capitalize()} RAZA: {raza_pj.capitalize()}")
 print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
 print("-" * 55)
 print(f"FUE: {fuerza_texto:<7} Probab. golpe: {bonos_fue['golpe']}   Ajuste daño: {bonos_fue['ajuste_daño']}")
