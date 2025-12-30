@@ -1,3 +1,5 @@
+import os
+
 # Tabla de bonificadores de Fuerza 
 # Estructura: valor: (ajuste_ataque, ajuste_daño)
 def calcular_bonos_fuerza(valor, clase, porcentaje=0):
@@ -194,7 +196,9 @@ if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
 else:
     fuerza_texto = f"{fuerza_pj}"
 
-# LA LÍNEA MÁGICA (Todo en un solo renglón)
+# Esto limpia la pantalla según el sistema operativo
+os.system('cls' if os.name == 'nt' else 'clear')
+# LA LÍNEA MÁGICA DE LA HOJA
 print("\n" + "="*55)
 print(f" FICHA DE PERSONAJE: {nombre_pj.upper()} ")
 print("="*55)
