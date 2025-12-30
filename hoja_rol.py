@@ -78,6 +78,77 @@ def calcular_bonos_constitucion(valor, clase):
         
     return {"ajuste_pg": ajuste_pg}
 
+def calcular_bonos_inteligencia(valor):
+    # El idioma natal siempre se sabe (1)
+    # A partir de 9 empiezan los adicionales
+    if valor <= 8:
+        lenguajes = 1 # Solo el natal
+    elif 9 <= valor <= 11:
+        lenguajes = 2 # Natal + 1 adicional
+    elif 12 <= valor <= 13:
+        lenguajes = 3 # Natal + 2 adicionales
+    elif 14 <= valor <= 15:
+        lenguajes = 4 # Natal + 3 adicionales
+    elif valor == 16:
+        lenguajes = 5 # Natal + 4 adicionales
+    elif valor == 17:
+        lenguajes = 6 # Natal + 5 adicionales
+    elif valor == 18:
+        lenguajes = 7 # Natal + 6 adicionales
+    else:
+        lenguajes = 1
+    return {"lenguajes": lenguajes}
+
+def calcular_bonos_sabiduria(valor):
+    # Ajuste de defensa contra magia mental
+    if valor <= 2:
+        defensa_mental = -4
+    elif valor == 3:
+        defensa_mental = -3
+    elif valor == 4:
+        defensa_mental = -2
+    elif 5 <= valor <= 7:
+        defensa_mental = -1
+    elif 8 <= valor <= 14:
+        defensa_mental = 0
+    elif valor == 15:
+        defensa_mental = 1
+    elif valor == 16:
+        defensa_mental = 2
+    elif valor == 17:
+        defensa_mental = 3
+    elif valor == 18:
+        defensa_mental = 4
+    else:
+        defensa_mental = 0
+    return {"def_mental": defensa_mental}
+
+def calcular_bonos_carisma(valor):
+    if valor <= 2:
+        return {"seguidores": 1, "lealtad": -7, "reaccion": -6}
+    elif valor == 3:
+        return {"seguidores": 1, "lealtad": -6, "reaccion": -5}
+    elif 4 <= valor <= 5:
+        return {"seguidores": 2, "lealtad": -4, "reaccion": -3}
+    elif 6 <= valor <= 8:
+        return {"seguidores": 3, "lealtad": -2, "reaccion": -1}
+    elif 9 <= valor <= 12:
+        return {"seguidores": 4, "lealtad": 0, "reaccion": 0}
+    elif valor == 13:
+        return {"seguidores": 5, "lealtad": 0, "reaccion": 1}
+    elif valor == 14:
+        return {"seguidores": 6, "lealtad": 1, "reaccion": 2}
+    elif valor == 15:
+        return {"seguidores": 7, "lealtad": 3, "reaccion": 3}
+    elif valor == 16:
+        return {"seguidores": 8, "lealtad": 4, "reaccion": 5}
+    elif valor == 17:
+        return {"seguidores": 10, "lealtad": 6, "reaccion": 6}
+    elif valor == 18:
+        return {"seguidores": 15, "lealtad": 8, "reaccion": 7}
+    
+    return {"seguidores": 0, "lealtad": 0, "reaccion": 0}
+
 # 1. Pedir el Nombre
 nombre_pj = input("¿Cual es el nombre de tu heroe? ")
 
@@ -99,10 +170,23 @@ destreza_pj = int(input("¿Que destreza tiene? (3-18): "))
 # 3.2 Pedir la constitucion
 constitucion_pj = int(input("¿Que constitucion tiene? (3-18): "))
 
+# 3.3 Pedir la inteligencia
+inteligencia_pj = int(input("¿Que inteligencia tiene? (3-18): "))
+
+# 3.4 Pedir la sabiduria
+sabiduria_pj = int(input("¿Que sabiduria tiene? (3-18): "))
+
+# 3.4 Pedir el carisma
+carisma_pj = int(input("¿Que carisma tiene? (3-18): "))
+
 # 4. Cálculo de los bonos
-bonos = calcular_bonos_fuerza(fuerza_pj, clase_pj, porcentaje_pj)
+bonos_fue = calcular_bonos_fuerza(fuerza_pj, clase_pj, porcentaje_pj)
 bonos_des = calcular_bonos_destreza(destreza_pj)
 bonos_con = calcular_bonos_constitucion(constitucion_pj, clase_pj)
+bonos_int = calcular_bonos_inteligencia(inteligencia_pj)
+bonos_sab = calcular_bonos_sabiduria(sabiduria_pj)
+bonos_car = calcular_bonos_carisma(carisma_pj)
+
 
 # Preparamos el texto de la fuerza (si es 18 y guerrero, sumamos el porcentaje)
 if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
@@ -117,7 +201,10 @@ print("="*55)
 print(f"CLASE: {clase_pj.capitalize()}")
 print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
 print("-" * 55)
-print(f"FUE: {fuerza_texto:<7} Probab. golpe: {bonos['golpe']}   Ajuste daño: {bonos['ajuste_daño']}")
+print(f"FUE: {fuerza_texto:<7} Probab. golpe: {bonos_fue['golpe']}   Ajuste daño: {bonos_fue['ajuste_daño']}")
 print(f"DES: {destreza_pj:<7} Ajuste reacción: {bonos_des['reaccion']:>2}   Ajuste ataque proyect.: {bonos_des['proyectil']:>2}   Ajuste defensivo: {bonos_des['defensa']:>2}")
 print(f"CON: {constitucion_pj:<7} Ajuste punto golpe: {bonos_con['ajuste_pg']:>2}")
+print(f"INT: {inteligencia_pj:<7} Núm. de lenguajes: {bonos_int['lenguajes']:>2}")
+print(f"SAB: {sabiduria_pj:<7} Ajuste defensa magica: {bonos_sab['def_mental']:>2}")
+print(f"CAR: {carisma_pj:<7} Núm. máx. servidores: {bonos_car['seguidores']:>2}   Lealtad básica: {bonos_car['lealtad']:>2}   Ajuste de reacción: {bonos_car['reaccion']:>2}")
 print("="*55)
