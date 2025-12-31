@@ -1,14 +1,38 @@
 import os
 
-# Tabla de modificadores raciales
+# --- TABLA DE LÍMITES RACIALES (Manual del Jugador 2.5) --- 
+LIMITES_RACIALES = {
+    "humano":   {"FUE": (3, 18), "DES": (3, 18), "CON": (3, 18), "INT": (3, 18), "SAB": (3, 18), "CAR": (3, 18)},
+    "enano":    {"FUE": (8, 18), "DES": (3, 17), "CON": (11, 19), "INT": (3, 18), "SAB": (3, 18), "CAR": (3, 17)},
+    "elfo":     {"FUE": (3, 18), "DES": (6, 19), "CON": (7, 18), "INT": (8, 18), "SAB": (3, 18), "CAR": (8, 18)},
+    "gnomo":    {"FUE": (6, 18), "DES": (3, 18), "CON": (8, 18), "INT": (6, 18), "SAB": (3, 18), "CAR": (3, 18)},
+    "semielfo": {"FUE": (3, 18), "DES": (6, 18), "CON": (6, 18), "INT": (4, 18), "SAB": (3, 18), "CAR": (3, 18)},
+    "halfling": {"FUE": (7, 18), "DES": (7, 19), "CON": (10, 18), "INT": (6, 18), "SAB": (3, 17), "CAR": (3, 18)}
+}
+# Tabla de modificadores raciales 
 TABLA_RAZAS = {
     "humano": {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0},
-    "Semielfo": {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0},
+    "semielfo": {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0},
     "elfo":   {"FUE": 0, "DES": 1, "CON": -1, "INT": 0, "SAB": 0, "CAR": 0},
     "enano":  {"FUE": 0, "DES": 0, "CON": 1, "INT": 0, "SAB": 0, "CAR": -1},
     "gnomo":  {"FUE": 0, "DES": 0, "CON": 0, "INT": 1, "SAB": -1, "CAR": 0},
     "halfling": {"FUE": -1, "DES": 1, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0}
 }
+
+# --- FUNCIÓN DE VALIDACIÓN ---
+def validar_y_avisar(atributo, valor, raza, habilitado, soltura):
+    if not habilitado: return
+    limites = LIMITES_RACIALES.get(raza, {}).get(atributo)
+    if limites:
+        minimo, maximo = limites
+        if valor < minimo or valor > maximo:
+            print(f"\n⚠️  [AVISO]: {atributo} {valor} está fuera del rango legal para {raza.capitalize()} ({minimo}-{maximo}).")
+            if soltura:
+                print(">>> Permitido por ajuste de ambientación.")
+            else:
+                print(">>> ATENCIÓN: Este valor no es legal en reglas puras.")
+
+
 # Tabla de bonificadores de Fuerza
 def calcular_bonos_fuerza(valor, clase, porcentaje=0):
     # Formato: (golpe, daño, peso_perm, esfuerzo_max, abrir_puertas, barras_rejas, nota)
@@ -272,18 +296,33 @@ def calcular_bonos_carisma(valor):
         "ajuste_rc": res[2]
     }
 
+# --- FLUJO PRINCIPAL ---
+
 # 1. Datos básicos
 nombre_pj = input("¿Cual es el nombre de tu heroe? ")
 raza_pj = input("¿Cual es tu raza? (Humano, Elfo, Semielfo, Enano, Gnomo, Halfling): ").lower()
+
+# --- INTERRUPTORES RAZAS ---
+print("\n" + "="*40)
+validar_topes = input("¿Validar límites de Atributos por Raza? (S/N): ").upper() == "S"
+soltura_master = input("¿Modo Ambientación (solo avisar)? (S/N): ").upper() == "S"
+print("="*40 + "\n")
+
 clase_pj = input("¿Cual es tu clase? (Guerrero, Mago, etc.): ")
 
-# 2. Pedir Atributos "Base" (lo que salió en los dados)
-fuerza_base = int(input("Fuerza base (3-18): "))
-destreza_base = int(input("Destreza base (3-18): "))
-constitucion_base = int(input("Constitucion base (3-18): "))
-inteligencia_base = int(input("Inteligencia base (3-18): "))
-sabiduria_base = int(input("Sabiduria base (3-18): "))
-carisma_base = int(input("Carisma base (3-18): "))
+# 2. Pedir Atributos "Base"
+fuerza_base = int(input("Fuerza base: "))
+validar_y_avisar("FUE", fuerza_base, raza_pj, validar_topes, soltura_master)
+destreza_base = int(input("Destreza base: "))
+validar_y_avisar("DES", destreza_base, raza_pj, validar_topes, soltura_master)
+constitucion_base = int(input("Constitucion base: "))
+validar_y_avisar("CON", constitucion_base, raza_pj, validar_topes, soltura_master)
+inteligencia_base = int(input("Inteligencia base: "))
+validar_y_avisar("INT", inteligencia_base, raza_pj, validar_topes, soltura_master)
+sabiduria_base = int(input("Sabiduria base: "))
+validar_y_avisar("SAB", sabiduria_base, raza_pj, validar_topes, soltura_master)
+carisma_base = int(input("Carisma base: "))
+validar_y_avisar("CAR", carisma_base, raza_pj, validar_topes, soltura_master)
 
   
 # 3. APLICAR MODIFICADORES RACIALES
