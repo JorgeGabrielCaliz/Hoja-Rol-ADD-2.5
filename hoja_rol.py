@@ -18,6 +18,24 @@ TABLA_RAZAS = {
     "gnomo":  {"FUE": 0, "DES": 0, "CON": 0, "INT": 1, "SAB": -1, "CAR": 0},
     "halfling": {"FUE": -1, "DES": 1, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0}
 }
+# --- TABLA DE CLASES (Manual del Jugador 2.5) ---
+TABLA_CLASES = {
+    # LUCHADORES
+    "guerrero":   {"req": {"FUE": 9}, "die": 10, "grupo": "luchador"},
+    "paladin":    {"req": {"FUE": 12, "CON": 9, "SAB": 13, "CAR": 17}, "die": 10, "grupo": "luchador"},
+    "explorador": {"req": {"FUE": 13, "DES": 13, "CON": 14, "SAB": 14}, "die": 10, "grupo": "luchador"},
+    
+    # MAGOS
+    "mago":       {"req": {"INT": 9}, "die": 4, "grupo": "mago"},
+    
+    # SACERDOTES
+    "clerigo":    {"req": {"SAB": 9}, "die": 8, "grupo": "sacerdote"},
+    "druida":     {"req": {"SAB": 12, "CAR": 15}, "die": 8, "grupo": "sacerdote"},
+    
+    # PÍCAROS / BRIBONES
+    "ladron":     {"req": {"DES": 9}, "die": 6, "grupo": "picaro"},
+    "bardo":      {"req": {"DES": 12, "INT": 13, "CAR": 15}, "die": 6, "grupo": "picaro"}
+}
 
 # --- FUNCIÓN DE VALIDACIÓN ---
 def validar_y_avisar(atributo, valor, raza, habilitado, soltura):
@@ -32,9 +50,47 @@ def validar_y_avisar(atributo, valor, raza, habilitado, soltura):
             else:
                 print(">>> ATENCIÓN: Este valor no es legal en reglas puras.")
 
+def validar_clase_pj(clase, mis_atribs, habilitado, soltura):
+    """
+    clase: el nombre de la clase elegida.
+    mis_atribs: un diccionario con los valores finales del PJ.
+    habilitado: el interruptor 'validar_clases'.
+    soltura: el interruptor 'soltura_master'.
+    """
+    if not habilitado: 
+        return True # Si no validamos, siempre pasa
+    
+    nombre_clase = clase.lower()
+    if nombre_clase not in TABLA_CLASES:
+        print(f"❌ ERROR: La clase '{clase}' no existe en el manual.")
+        return False # Si la clase no está en la lista o esta inventada, no podemos validarla
+    
+    requisitos = TABLA_CLASES[nombre_clase]["req"]
+    cumple_todo = True
+    
+    print(f"\n--- Chequeando vocación de {clase.capitalize()} ---")
+    
+    for atrib, min_req in requisitos.items():
+        valor_pj = mis_atribs.get(atrib, 0)
+        if valor_pj < min_req:
+            print(f"❌ REQUISITO FALLIDO: {atrib} mínimo {min_req} (Tienes {valor_pj})")
+            cumple_todo = False
+        else:
+            print(f"✅ {atrib} correcto.")
+
+    if not cumple_todo:
+        if soltura:
+            print(">>> ADVERTENCIA: No cumples los requisitos, pero el Master permite excepciones.")
+            return True
+        else:
+            print(">>> BLOQUEO: Este personaje no es legal según las reglas oficiales.")
+            return False
+    
+    print(">>> ¡Cumples con todos los requisitos de clase!")
+    return True
 
 # Tabla de bonificadores de Fuerza
-def calcular_bonos_fuerza(valor, clase, porcentaje=0):
+def calcular_bonos_fuerza(valor, grupo, porcentaje=0):
     # Formato: (golpe, daño, peso_perm, esfuerzo_max, abrir_puertas, barras_rejas, nota)
     tablas = {
         1:  (-5, -4, 1, 3, "1", 0, ""),
@@ -70,9 +126,9 @@ def calcular_bonos_fuerza(valor, clase, porcentaje=0):
         24: (6, 12, 1235, 5000, "19(17)", 95, "Gigante Tormentas"), # Gigante de las Tormentas 
         25: (7, 14, 1535, 7500, "19(18)", 99, "Titán") # Titán 
     }
-
+    
     clave = valor
-    if valor == 18 and clase.lower() == "guerrero":
+    if valor == 18 and grupo.lower() == "luchador":
         if 1 <= porcentaje <= 50:
             clave = "18/50"
         elif 51 <= porcentaje <= 75:
@@ -298,54 +354,80 @@ def calcular_bonos_carisma(valor):
 
 # --- FLUJO PRINCIPAL ---
 
-# 1. Datos básicos
-nombre_pj = input("¿Cual es el nombre de tu heroe? ")
-raza_pj = input("¿Cual es tu raza? (Humano, Elfo, Semielfo, Enano, Gnomo, Halfling): ").lower()
-
-# --- INTERRUPTORES RAZAS ---
-print("\n" + "="*40)
+# --- INTERRUPTORES RAZAS Y CLASES---
 validar_topes = input("¿Validar límites de Atributos por Raza? (S/N): ").upper() == "S"
+validar_clases = input("¿Validar requisitos mínimos para Clases? (S/N): ").upper() == "S"
 soltura_master = input("¿Modo Ambientación (solo avisar)? (S/N): ").upper() == "S"
+
+# 1. Datos básicos
+print("\n" + "="*40)
+nombre_pj = input("¿Cuál es el nombre de tu héroe? ")
+raza_pj = input("¿Cuál es tu raza? (Humano, Elfo, etc.): ").lower()
+clase_pj = input("¿Cuál es tu profesión específica? (Ej: Caballero de Solamnia): ")
+
+# AQUÍ EL NUEVO SELECTOR
+print("\n--- Selecciona el Grupo Mecánico ---")
+print("1. Luchador  (Fuerza Excepcional, Dados de Golpe d10)")
+print("2. Mago      (Dados de Golpe d4)")
+print("3. Sacerdote (Dados de Golpe d8)")
+print("4. Bribón    (Dados de Golpe d6)")
+opcion = input("Elegí el grupo (1-4): ")
+
+# Mapeo de la elección
+diccionario_grupos = {"1": "luchador", "2": "mago", "3": "sacerdote", "4": "picaro"}
+grupo_pj = diccionario_grupos.get(opcion, "luchador") # Por defecto luchador
 print("="*40 + "\n")
 
-clase_pj = input("¿Cual es tu clase? (Guerrero, Mago, etc.): ")
+# --- 2. PEDIR ATRIBUTOS Y APLICAR BONOS EN EL MOMENTO ---
 
-# 2. Pedir Atributos "Base"
+# Primero necesitamos los bonos de raza para los cálculos en tiempo real
+bonos_raza = TABLA_RAZAS.get(raza_pj, {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0})
+porcentaje_pj = 0
+# FUERZA
 fuerza_base = int(input("Fuerza base: "))
 validar_y_avisar("FUE", fuerza_base, raza_pj, validar_topes, soltura_master)
+fuerza_pj = fuerza_base + bonos_raza.get("FUE", 0)
+# Simplificado: Si el grupo es luchador y tiene 18, pide el porcentaje
+if fuerza_pj == 18 and grupo_pj == "luchador":
+    porcentaje_pj = int(input(f"¡Fuerza excepcional! Tirada de 1d100: "))
+# DESTREZA
 destreza_base = int(input("Destreza base: "))
 validar_y_avisar("DES", destreza_base, raza_pj, validar_topes, soltura_master)
+destreza_pj = destreza_base + bonos_raza.get("DES", 0)
+# CONSTITUCION
 constitucion_base = int(input("Constitucion base: "))
 validar_y_avisar("CON", constitucion_base, raza_pj, validar_topes, soltura_master)
+constitucion_pj = constitucion_base + bonos_raza.get("CON", 0)
+# INTELIGENCIA
 inteligencia_base = int(input("Inteligencia base: "))
 validar_y_avisar("INT", inteligencia_base, raza_pj, validar_topes, soltura_master)
+inteligencia_pj = inteligencia_base + bonos_raza.get("INT", 0)
+# SABIDURIA
 sabiduria_base = int(input("Sabiduria base: "))
 validar_y_avisar("SAB", sabiduria_base, raza_pj, validar_topes, soltura_master)
+sabiduria_pj = sabiduria_base + bonos_raza.get("SAB", 0)
+# CARISMA
 carisma_base = int(input("Carisma base: "))
 validar_y_avisar("CAR", carisma_base, raza_pj, validar_topes, soltura_master)
-
-  
-# 3. APLICAR MODIFICADORES RACIALES
-# Buscamos los bonos de la raza elegida (si no existe, usamos 0)
-bonos_raza = TABLA_RAZAS.get(raza_pj, {"FUE": 0, "DES": 0, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0})
-
-fuerza_pj = fuerza_base + bonos_raza.get("FUE", 0)
-destreza_pj = destreza_base + bonos_raza.get("DES", 0)
-constitucion_pj = constitucion_base + bonos_raza.get("CON", 0)
-inteligencia_pj = inteligencia_base + bonos_raza.get("INT", 0)
-sabiduria_pj = sabiduria_base + bonos_raza.get("SAB", 0)
 carisma_pj = carisma_base + bonos_raza.get("CAR", 0)
 
+# Armamos el diccionario para la validación de clase
+mis_atribs_finales = {
+    "FUE": fuerza_pj, "DES": destreza_pj, "CON": constitucion_pj,
+    "INT": inteligencia_pj, "SAB": sabiduria_pj, "CAR": carisma_pj
+}
 
-# 3.1 Se aplica la logica de la clases luchador:
-porcentaje_pj = 0
-# Solo si es Guerrero (Luchador) Y tiene 18, pedimos porcentaje
-if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
-    porcentaje_pj = int(input("¡Fuerza excepcional de Luchador! Poné el porcentaje (1-100): "))
-
+es_legal = validar_clase_pj(clase_pj, mis_atribs_finales, validar_clases, soltura_master)
+# Si no es legal y NO tenemos soltura, frenamos el programa
+if not es_legal and not soltura_master:
+    print("\n[!] No puedes continuar con un personaje ilegal.")
+    exit() # Esto cierra el programa para que el usuario tenga que empezar de nuevo
+elif not es_legal and soltura_master:
+    input("\n⚠️  Atención: Se aplicarán reglas caseras. Presioná Enter para confirmar...")
+# ------------------------------
 
 # 4. Cálculo de los bonos
-bonos_fue = calcular_bonos_fuerza(fuerza_pj, clase_pj, porcentaje_pj)
+bonos_fue = calcular_bonos_fuerza(fuerza_pj, grupo_pj, porcentaje_pj)
 bonos_des = calcular_bonos_destreza(destreza_pj)
 bonos_con = calcular_bonos_constitucion(constitucion_pj, clase_pj)
 bonos_int = calcular_bonos_inteligencia(inteligencia_pj)
@@ -353,13 +435,19 @@ bonos_sab = calcular_bonos_sabiduria(sabiduria_pj)
 bonos_car = calcular_bonos_carisma(carisma_pj)
 
 
-# Preparamos el texto de la fuerza (si es 18 y guerrero, sumamos el porcentaje)
-if fuerza_pj == 18 and clase_pj.lower() == "guerrero":
+
+# --- SECCIÓN DE PREPARACIÓN PARA LA FICHA ---
+
+# 1. Preparamos el texto del número (18/00, etc)
+if porcentaje_pj > 0:
     fuerza_texto = f"{fuerza_pj}/{'00' if porcentaje_pj == 100 else porcentaje_pj}"
 else:
     fuerza_texto = f"{fuerza_pj}"
 
-# Esto limpia la pantalla según el sistema operativo
+# 2. Preparamos la nota (lo que me preguntaste recién)
+nota_fuerza = f" ({bonos_fue['nota']})" if bonos_fue['nota'] else ""
+
+# 3. Limpiamos pantalla y dibujamos la ficha
 os.system('cls' if os.name == 'nt' else 'clear')
 # LA LÍNEA MÁGICA DE LA HOJA
 print("\n" + "="*55)
@@ -368,9 +456,7 @@ print("="*55)
 print(f"CLASE: {clase_pj.capitalize()} RAZA: {raza_pj.capitalize()}")
 print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
 print("-" * 55)
-print(f"FUE: {fuerza_pj:<2} ({porcentaje_pj if porcentaje_pj > 0 else '--':>2}) | Golpe: {bonos_fue['golpe']:>2} | Daño: {bonos_fue['ajuste_daño']:>2} | Carga: {bonos_fue['peso_perm']:>3}/{bonos_fue['esfuerzo_max']:>4} | Puertas: {bonos_fue['abrir_puertas']:>5} | Barras: {bonos_fue['barras_rejas']:>2}%")
-if bonos_fue['nota']:
-    print(f"      [ NOTA: {bonos_fue['nota']} ]")
+fuerza_texto: print(f"FUE: {fuerza_texto:<7} | Golpe: {bonos_fue['golpe']:>2} | Daño: {bonos_fue['ajuste_daño']:>2} | Carga: {bonos_fue['peso_perm']:>3}/{bonos_fue['esfuerzo_max']:>4} | Puertas: {bonos_fue['abrir_puertas']:>5} | Barras: {bonos_fue['barras_rejas']:>2}%{nota_fuerza}")
 print(f"DES: {destreza_pj:<2} | Reacción: {bonos_des['ajuste_rc']:>2} | Proyectiles: {bonos_des['ajuste_proy']:>2} | Defensa: {bonos_des['ajuste_def']:>2}")
 print(f"CON: {constitucion_pj:<2} | Ajuste PG: {bonos_con['ajuste_dg']:>2} | Shock: {bonos_con['shock']}% | Resurrección: {bonos_con['resurreccion']}% | Regen: {bonos_con['regen']}")
 print(f"INT: {inteligencia_pj:<2} | Lenguajes: {bonos_int['lenguajes']:>2} | Máx. Nivel: {bonos_int['nivel_max']} | Prob. Aprender: {bonos_int['prob_aprender']}% | Máx. Conjuros: {bonos_int['max_conjuros']} | Inmunidad conjuros: {bonos_int['inm_ilusion']}")
