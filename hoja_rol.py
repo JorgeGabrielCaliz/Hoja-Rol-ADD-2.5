@@ -18,6 +18,37 @@ TABLA_RAZAS = {
     "gnomo":  {"FUE": 0, "DES": 0, "CON": 0, "INT": 1, "SAB": -1, "CAR": 0},
     "halfling": {"FUE": -1, "DES": 1, "CON": 0, "INT": 0, "SAB": 0, "CAR": 0}
 }
+
+TABLA_HABILIDADES_RACIALES = {
+    "enano": [
+        "Infravisión 18m",
+        "Detección de trabajos de cantería (trampas, muros falsos, etc.)",
+        "+1 al ataque contra Orcos, Medio-Orcos, Trasgos y Hobgoblins",
+        "Los gigantes/ogros tienen -4 para golpearte",
+        "Resistencia mágica: +1 a salvación por cada 3.5 puntos de CON"
+    ],
+    "elfo": [
+        "Infravisión 18m",
+        "90% resistencia a Dormir y Encantamiento",
+        "+1 al ataque con espadas largas, cortas y arcos (no ballestas)",
+        "Bonificador al movimiento sigiloso si no visten armadura metálica",
+        "Detectar puertas secretas/ocultas al pasar cerca"
+    ],
+    "halfling": [ # O "mediano" según tu lista
+        "Bonificador al ataque con hondas y armas arrojadizas",
+        "Sorprender enemigos (sigilo)",
+        "Resistencia mágica: +1 a salvación por cada 3.5 puntos de CON"
+    ],
+    "gnomo": [
+        "Infravisión 18m",
+        "Detección de túneles e inclinaciones",
+        "Resistencia mágica: +1 a salvación por cada 3.5 puntos de CON",
+        "+1 al ataque contra Kobolds y Trasgos"
+    ],
+    "humano": ["Habilidad de Clase Dual", "Sin penalizadores ni bonos específicos"],
+    "semielfo": ["Infravisión 18m", "30% resistencia a Dormir y Encantamiento"]
+}
+
 # --- TABLA DE CLASES (Manual del Jugador 2.5) ---
 TABLA_CLASES = {
     # LUCHADORES
@@ -36,6 +67,14 @@ TABLA_CLASES = {
     "ladron":     {"req": {"DES": 9}, "die": 6, "grupo": "picaro"},
     "bardo":      {"req": {"DES": 12, "INT": 13, "CAR": 15}, "die": 6, "grupo": "picaro"}
 }
+
+# --- NUEVAS TABLAS PARA CONSTITUCIÓN ---
+TABLA_CON_LUCHADOR = {1: -2, 2: -1, 3: -1, 4: 0, 15: 1, 16: 2, 17: 3, 18: 4}
+TABLA_CON_ESTANDAR = {1: -2, 2: -1, 3: -1, 4: 0, 15: 1, 16: 2, 17: 2, 18: 2}
+TABLA_SHOCK_SISTEMICO = {1: 25, 2: 30, 3: 35, 4: 40, 5: 45, 6: 50, 7: 55, 8: 60, 9: 65, 10: 70, 11: 75, 12: 80, 13: 85, 14: 88, 15: 90, 16: 95, 17: 97, 18: 99}
+TABLA_SUPERVIVENCIA_RES = {1: 30, 2: 35, 3: 40, 4: 45, 5: 50, 6: 55, 7: 60, 8: 65, 9: 70, 10: 75, 11: 80, 12: 85, 13: 90, 14: 92, 15: 94, 16: 96, 17: 98, 18: 100}
+TABLA_VENENO_RACIAL = {1: 0, 4: 1, 7: 2, 11: 3, 14: 4, 18: 5}
+
 
 # --- FUNCIÓN DE VALIDACIÓN ---
 def validar_y_avisar(atributo, valor, raza, habilitado, soltura):
@@ -189,53 +228,48 @@ def calcular_bonos_destreza(valor):
         "ajuste_def": res[2]
     }
 
-def calcular_bonos_constitucion(valor, clase):
-    # Formato: (ajuste_dg, supervivencia_shock, resurreccion, veneno, regeneracion)
-    tablas = {
-        1: (-3, 25, 30, -2, "Nulo"),
-        2: (-2, 30, 35, -1, "Nulo"),
-        3: (-2, 35, 40, 0, "Nulo"),
-        4: (-1, 40, 45, 0, "Nulo"),
-        5: (-1, 45, 50, 0, "Nulo"),
-        6: (-1, 50, 55, 0, "Nulo"),
-        7: (0, 55, 60, 0, "Nulo"),
-        8: (0, 60, 65, 0, "Nulo"),
-        9: (0, 65, 70, 0, "Nulo"),
-        10: (0, 70, 75, 0, "Nulo"),
-        11: (0, 75, 80, 0, "Nulo"),
-        12: (0, 80, 85, 0, "Nulo"),
-        13: (0, 85, 90, 0, "Nulo"),
-        14: (0, 88, 92, 0, "Nulo"),
-        15: (1, 90, 94, 0, "Nulo"),
-        16: (2, 95, 96, 0, "Nulo"),
-        17: (3, 97, 98, 0, "Nulo"),
-        18: (4, 99, 100, 0, "Nulo"),
-        19: (5, 99, 100, 1, "Nulo"),
-        20: (5, 99, 100, 1, "1/6 turnos"),
-        21: (6, 99, 100, 2, "1/5 turnos"),
-        22: (6, 99, 100, 2, "1/4 turnos"),
-        23: (6, 99, 100, 3, "1/3 turnos"),
-        24: (7, 99, 100, 3, "1/2 turnos"),
-        25: (7, 99, 100, 4, "1/1 turno")
-    }
+def calcular_bonos_constitucion(valor, grupo_mecanico, raza="Humano", modificadores_extra=None):
+    """
+    Calcula los beneficios de Constitución usando las nuevas tablas.
+    """
+    if modificadores_extra is None:
+        modificadores_extra = {}
+
+    # Ajustamos el valor al rango legal (1-18)
+    v = max(1, min(18, valor))
     
-    res = tablas.get(valor, (0, 75, 80, 0, "Nulo"))
+    # 1. Ajuste de Vida (Diferencia por Grupo: Luchador vs Resto)
+    if grupo_mecanico.lower() == "luchador":
+        bono_vida = TABLA_CON_LUCHADOR.get(v, 0)
+    else:
+        bono_vida = TABLA_CON_ESTANDAR.get(v, 0)
+        
+    # 2. Shock y Resurrección (Valores fijos de las tablas)
+    shock = TABLA_SHOCK_SISTEMICO.get(v, 0)
+    resurreccion = TABLA_SUPERVIVENCIA_RES.get(v, 0)
     
-    ajuste_final = res[0]
-    
-    # Lista de clases que SI pueden tener más de +2
-    clases_pro = ["guerrero", "paladin", "explorador", "ranger"]
-    
-    # Si la clase NO está en la lista y el ajuste es mayor a 2, se lo bajamos a 2
-    if clase.lower() not in clases_pro and ajuste_final > 2:
-        ajuste_final = 2
+    # 3. Resistencia al Veneno (Solo Enanos y Medianos)
+    bono_veneno = 0
+    if raza.lower() in ["enano", "mediano", "halfling"]:
+        # Busca el bono más alto permitido por tu Constitución
+        bonos_posibles = [val for k, val in TABLA_VENENO_RACIAL.items() if k <= v]
+        bono_veneno = max(bonos_posibles) if bonos_posibles else 0
+
+    # 4. Regeneración (Solo para CON 20+)
+    regeneracion = "Ninguna"
+    if valor >= 20:
+        regeneracion = "1/6 turnos"
+
+    # Aplicamos los "Switches" o modificadores del Master si existen
+    bono_vida += modificadores_extra.get("vida", 0)
+    bono_veneno += modificadores_extra.get("veneno", 0)
 
     return {
-        "ajuste_dg": ajuste_final,
-        "shock": res[1],
-        "resurreccion": res[2],
-        "veneno": res[3],
-        "regen": res[4]
+        "vida": bono_vida,
+        "shock": shock,
+        "res": resurreccion,
+        "veneno": bono_veneno,
+        "regen": regeneracion
     }
 
 def calcular_bonos_inteligencia(valor):
@@ -429,7 +463,7 @@ elif not es_legal and soltura_master:
 # 4. Cálculo de los bonos
 bonos_fue = calcular_bonos_fuerza(fuerza_pj, grupo_pj, porcentaje_pj)
 bonos_des = calcular_bonos_destreza(destreza_pj)
-bonos_con = calcular_bonos_constitucion(constitucion_pj, clase_pj)
+bonos_con = calcular_bonos_constitucion(constitucion_pj, grupo_pj, raza_pj)
 bonos_int = calcular_bonos_inteligencia(inteligencia_pj)
 bonos_sab = calcular_bonos_sabiduria(sabiduria_pj)
 bonos_car = calcular_bonos_carisma(carisma_pj)
@@ -458,10 +492,18 @@ print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
 print("-" * 55)
 fuerza_texto: print(f"FUE: {fuerza_texto:<7} | Golpe: {bonos_fue['golpe']:>2} | Daño: {bonos_fue['ajuste_daño']:>2} | Carga: {bonos_fue['peso_perm']:>3}/{bonos_fue['esfuerzo_max']:>4} | Puertas: {bonos_fue['abrir_puertas']:>5} | Barras: {bonos_fue['barras_rejas']:>2}%{nota_fuerza}")
 print(f"DES: {destreza_pj:<2} | Reacción: {bonos_des['ajuste_rc']:>2} | Proyectiles: {bonos_des['ajuste_proy']:>2} | Defensa: {bonos_des['ajuste_def']:>2}")
-print(f"CON: {constitucion_pj:<2} | Ajuste PG: {bonos_con['ajuste_dg']:>2} | Shock: {bonos_con['shock']}% | Resurrección: {bonos_con['resurreccion']}% | Regen: {bonos_con['regen']}")
+print(f"CON: {constitucion_pj:<2} | Ajuste PG: {bonos_con['vida']:>2} | Shock: {bonos_con['shock']}% | Resurrección: {bonos_con['res']}% | Veneno: +{bonos_con['veneno']} | Regen: {bonos_con['regen']}")
 print(f"INT: {inteligencia_pj:<2} | Lenguajes: {bonos_int['lenguajes']:>2} | Máx. Nivel: {bonos_int['nivel_max']} | Prob. Aprender: {bonos_int['prob_aprender']}% | Máx. Conjuros: {bonos_int['max_conjuros']} | Inmunidad conjuros: {bonos_int['inm_ilusion']}")
 print(f"SAB: {sabiduria_pj:<2} | Defensa Mágica: {bonos_sab['defensa']:>2} | Conjuros Bono: {bonos_sab['bonos']} | Fracaso: {bonos_sab['fracaso']}%")
 if bonos_sab['inmunidad'] != "Ninguna":
     print(f"      [ INMUNIDAD MENTAL: {bonos_sab['inmunidad']} ]")
 print(f"CAR: {carisma_pj:<2} | Máx. Seguidores: {bonos_car['max_seg']:>2} | Lealtad: {bonos_car['lealtad_bas']:>2} | Reacción: {bonos_car['ajuste_rc']:>2}")
 print("="*55)
+
+# --- SECCIÓN DE HABILIDADES RACIALES (El cartel luminoso) ---
+print("\n" + "!"*20 + " HABILIDADES RACIALES " + "!"*20)
+habilidades = TABLA_HABILIDADES_RACIALES.get(raza_pj.lower(), ["No se encontraron habilidades."])
+
+for hab in habilidades:
+    print(f" > {hab}")
+print("!" * 62)
