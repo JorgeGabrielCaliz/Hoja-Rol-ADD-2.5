@@ -56,16 +56,23 @@ TABLA_CLASES = {
     "paladin":    {"req": {"FUE": 12, "CON": 9, "SAB": 13, "CAR": 17}, "die": 10, "grupo": "luchador"},
     "explorador": {"req": {"FUE": 13, "DES": 13, "CON": 14, "SAB": 14}, "die": 10, "grupo": "luchador"},
     
-    # MAGOS
-    "mago":       {"req": {"INT": 9}, "die": 4, "grupo": "mago"},
+    # HECHICERO
+    "hechicero":       {"req": {"INT": 9}, "die": 4, "grupo": "mago"},
     
     # SACERDOTES
     "clerigo":    {"req": {"SAB": 9}, "die": 8, "grupo": "sacerdote"},
     "druida":     {"req": {"SAB": 12, "CAR": 15}, "die": 8, "grupo": "sacerdote"},
     
-    # PÍCAROS / BRIBONES
+    # BRIBONES
     "ladron":     {"req": {"DES": 9}, "die": 6, "grupo": "picaro"},
     "bardo":      {"req": {"DES": 12, "INT": 13, "CAR": 15}, "die": 6, "grupo": "picaro"}
+}
+
+DADOS_VIDA = {
+    "luchador": 10,
+    "sacerdote": 8,
+    "bribon": 6,
+    "hechicero": 4
 }
 # --- TABLA DE FUERZA ---
 TABLA_FUE = {
@@ -228,7 +235,46 @@ TABLA_CAR = {
     24: (45, 20, 13),
     25: (50, 22, 14)
 }
+# --- TABLAS DE SALVACIÓN ---
+# (Paralización/Veneno, Vara/Vara/Cetro, Petrificación, Arma de Aliento, Conjuro)
+TS_LUCHADOR = {
+    1: (14, 16, 15, 17, 17),
+    3: (13, 15, 14, 16, 16),
+    5: (11, 13, 12, 13, 14),
+    7: (10, 12, 11, 12, 13),
+    9: (8, 10, 9, 9, 11),
+    11: (7, 9, 8, 8, 10),
+    13: (5, 7, 6, 5, 8),
+    15: (4, 6, 5, 4, 7),
+    17: (3, 5, 4, 4, 6)
+}
 
+TS_SACERDOTE = {
+    1: (10, 14, 13, 16, 15),
+    4: (9, 13, 12, 15, 14),
+    7: (7, 11, 10, 13, 12),
+    10: (6, 10, 9, 12, 11),
+    13: (5, 9, 8, 11, 10),
+    16: (4, 8, 7, 10, 9),
+    19: (2, 6, 5, 8, 7)
+}
+
+TS_HECHICERO = {
+    1: (14, 11, 13, 15, 12),
+    6: (13, 9, 11, 13, 10),
+    11: (11, 7, 9, 11, 8),
+    16: (10, 5, 7, 9, 6),
+    21: (8, 3, 5, 7, 4)
+}
+
+TS_BRIBON = {
+    1: (13, 14, 12, 16, 15),
+    5: (12, 12, 11, 15, 14),
+    9: (11, 10, 10, 14, 13),
+    13: (10, 8, 9, 13, 12),
+    17: (9, 6, 8, 12, 11),
+    21: (8, 4, 7, 11, 10)
+}
 # --- FUNCIÓN DE VALIDACIÓN ---
 def validar_y_avisar(atributo, valor, raza, habilitado, soltura):
     if not habilitado: return
@@ -403,6 +449,38 @@ def calcular_bonos_carisma(valor):
         "ajuste_rc": res[2]
     }
 
+def calcular_pg_totales(vida_dados, nivel, bono_con):
+    # El bono de constitución se aplica por cada nivel (hasta nivel 9/10 generalmente)
+    # Por ahora lo hacemos lineal:
+    vida_por_con = nivel * bono_con
+    total = vida_dados + vida_por_con
+    
+    return total, vida_por_con
+
+def calcular_salvaciones_base(nivel, grupo):
+    # Diccionario para elegir la tabla correcta
+    tablas = {
+        "luchador": TS_LUCHADOR,
+        "sacerdote": TS_SACERDOTE,
+        "hechicero": TS_HECHICERO,
+        "bribon": TS_BRIBON
+    }
+    
+    # Seleccionamos la tabla, si no encuentra usa luchador por defecto
+    tabla_elegida = tablas.get(grupo, TS_LUCHADOR)
+    
+    # Buscamos el escalón de nivel (lógica de caída que ya usamos)
+    claves = sorted([k for k in tabla_elegida.keys() if k <= nivel])
+    base = tabla_elegida[claves[-1]]
+    
+    return {
+        "veneno": base[0],
+        "varas": base[1],
+        "petri": base[2],
+        "aliento": base[3],
+        "conjuro": base[4]
+    }
+
 # --- FLUJO PRINCIPAL ---
 
 # --- INTERRUPTORES RAZAS Y CLASES---
@@ -419,13 +497,13 @@ clase_pj = input("¿Cuál es tu profesión específica? (Ej: Caballero de Solamn
 # AQUÍ EL NUEVO SELECTOR
 print("\n--- Selecciona el Grupo Mecánico ---")
 print("1. Luchador  (Fuerza Excepcional, Dados de Golpe d10)")
-print("2. Mago      (Dados de Golpe d4)")
+print("2. Hechicero      (Dados de Golpe d4)")
 print("3. Sacerdote (Dados de Golpe d8)")
 print("4. Bribón    (Dados de Golpe d6)")
 opcion = input("Elegí el grupo (1-4): ")
 
 # Mapeo de la elección
-diccionario_grupos = {"1": "luchador", "2": "mago", "3": "sacerdote", "4": "picaro"}
+diccionario_grupos = {"1": "luchador", "2": "hechicero", "3": "sacerdote", "4": "bribon"}
 grupo_pj = diccionario_grupos.get(opcion, "luchador") # Por defecto luchador
 print("="*40 + "\n")
 
@@ -485,7 +563,15 @@ bonos_int = calcular_bonos_inteligencia(inteligencia_pj)
 bonos_sab = calcular_bonos_sabiduria(sabiduria_pj)
 bonos_car = calcular_bonos_carisma(carisma_pj)
 
+# --- En la parte principal del código ---
+nivel_pj = int(input(f"¿Qué nivel es tu {clase_pj}?: "))
+dado = DADOS_VIDA.get(grupo_pj, 10)
 
+print(f"\n[SISTEMA] Al ser nivel {nivel_pj}, debes lanzar {nivel_pj}d{dado}.")
+vida_sacada = int(input("Introduce el total sumado de tus dados: "))
+
+# Calculamos
+pg_finales, vida_bonus_con = calcular_pg_totales(vida_sacada, nivel_pj, bonos_con["vida"])
 
 # --- SECCIÓN DE PREPARACIÓN PARA LA FICHA ---
 
@@ -497,6 +583,7 @@ else:
 
 # 2. Preparamos la nota (lo que me preguntaste recién)
 nota_fuerza = f" ({bonos_fue['nota']})" if bonos_fue['nota'] else ""
+ts_base = calcular_salvaciones_base(nivel_pj, grupo_pj)
 
 # 3. Limpiamos pantalla y dibujamos la ficha
 os.system('cls' if os.name == 'nt' else 'clear')
@@ -504,10 +591,11 @@ os.system('cls' if os.name == 'nt' else 'clear')
 print("\n" + "="*55)
 print(f" FICHA DE PERSONAJE: {nombre_pj.upper()} ")
 print("="*55)
-print(f"CLASE: {clase_pj.capitalize()} RAZA: {raza_pj.capitalize()}")
+print(f"CLASE: {clase_pj.capitalize()} | RAZA: {raza_pj.capitalize()} | NIVEL: {nivel_pj}")
+print(f"PUNTOS DE GOLPE: {pg_finales} ({vida_sacada} puntos + {vida_bonus_con} Constitución)")
 print(f"{'ATRIBUTO':<10} | {'VALOR':<10}")
 print("-" * 55)
-fuerza_texto: print(f"FUE: {fuerza_texto:<7} | Golpe: {bonos_fue['golpe']:>2} | Daño: {bonos_fue['ajuste_daño']:>2} | Carga: {bonos_fue['peso_perm']:>3}/{bonos_fue['esfuerzo_max']:>4} | Puertas: {bonos_fue['abrir_puertas']:>5} | Barras: {bonos_fue['barras_rejas']:>2}%{nota_fuerza}")
+fuerza_texto: print(f"FUE: {fuerza_texto:<7} | Golpe: {bonos_fue['golpe']:>2} | Daño: {bonos_fue['ajuste_daño']:>2} | Carga: {bonos_fue['peso_perm']:>2}/{bonos_fue['esfuerzo_max']:>2} | Puertas: {bonos_fue['abrir_puertas']:>3} | Barras: {bonos_fue['barras_rejas']:>2}%{nota_fuerza}")
 print(f"DES: {destreza_pj:<2} | Reacción: {bonos_des['ajuste_rc']:>2} | Proyectiles: {bonos_des['ajuste_proy']:>2} | Defensa: {bonos_des['ajuste_def']:>2}")
 print(f"CON: {constitucion_pj:<2} | Ajuste PG: {bonos_con['vida']:>2} | Shock: {bonos_con['shock']}% | Resurrección: {bonos_con['res']}% | Veneno: +{bonos_con['veneno']} | Regen: {bonos_con['regen']}")
 print(f"INT: {inteligencia_pj:<2} | Lenguajes: {bonos_int['lenguajes']:>2} | Máx. Nivel: {bonos_int['nivel_max']} | Prob. Aprender: {bonos_int['prob_aprender']}% | Máx. Conjuros: {bonos_int['max_conjuros']} | Inmunidad conjuros: {bonos_int['inm_ilusion']}")
@@ -524,3 +612,17 @@ habilidades = TABLA_HABILIDADES_RACIALES.get(raza_pj.lower(), ["No se encontraro
 for hab in habilidades:
     print(f" > {hab}")
 print("!" * 62)
+
+print("\n" + "-"*15 + " TIRADAS DE SALVACIÓN (BASE) " + "-"*15)
+print(f" P.Veneno: {ts_base['veneno']:>2} | Varas/Cetro: {ts_base['varas']:>2} | Petrif.: {ts_base['petri']:>2}")
+print(f" Aliento : {ts_base['aliento']:>2} | Conjuros   : {ts_base['conjuro']:>2}")
+
+# Notas de ayuda para el jugador (esto es lo que decíamos)
+print("-" * 59)
+print(f" NOTAS: Sabiduría otorga {bonos_sab['defensa']} contra efectos mentales.")
+if raza_pj.lower() in ["enano", "halfling", "gnomo"]:
+    # Calculamos el bono racial rápido para la nota
+    bono_duro = int(constitucion_pj / 3.5)
+    print(f" BONO RACIAL: +{bono_duro} contra Veneno y Varas (por CON).")
+    
+print("="*55)
