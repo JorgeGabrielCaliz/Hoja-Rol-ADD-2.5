@@ -65,7 +65,7 @@ TABLA_CLASES = {
     "explorador": {"req": {"FUE": 13, "DES": 13, "CON": 14, "SAB": 14}, "die": 10, "grupo": "luchador"},
     
     # HECHICERO
-    "mago":       {"req": {"INT": 9}, "die": 4, "grupo": "hechicero"},
+    "hechicero":       {"req": {"INT": 9}, "die": 4, "grupo": "mago"},
     
     # SACERDOTES
     "clerigo":    {"req": {"SAB": 9}, "die": 8, "grupo": "sacerdote"},
@@ -73,7 +73,7 @@ TABLA_CLASES = {
     
     # BRIBONES
     "ladron":     {"req": {"DES": 9}, "die": 6, "grupo": "picaro"},
-    "bardo":      {"req": {"DES": 12, "INT": 13, "CAR": 15}, "die": 6, "grupo": "bribon"}
+    "bardo":      {"req": {"DES": 12, "INT": 13, "CAR": 15}, "die": 6, "grupo": "picaro"}
 }
 
 DADOS_VIDA = {
@@ -278,10 +278,6 @@ TABLA_PENALIZACION_ARMADURA = {
     "cota_malla_elfica":[-20, -5, -5, -10, -10, -5, -20, 0],
     "camisote_mallas":  [-25, -15, -10, -25, -25, -15, -40, 0]
 }
-
-# Tabla 33 - Bases iniciales del Bardo
-BASES_BARDO = [50, 20, 10, 5]  # [Escalar, Ruidos, Bolsillos, Lenguajes]
-NOMBRES_BARDO = ["Escalar Paredes", "Detectar Ruidos", "Vaciar Bolsillos", "Leer Lenguajes"]
 # --- TABLAS DE SALVACIÓN ---
 # (Paralización/Veneno, Vara/Vara/Cetro, Petrificación, Arma de Aliento, Conjuro)
 TS_LUCHADOR = {
@@ -650,88 +646,68 @@ else:
 nota_fuerza = f" ({bonos_fue['nota']})" if bonos_fue['nota'] else ""
 ts_base = calcular_salvaciones_base(nivel_pj, grupo_pj)
 
-
-# =========================================================================
-# 1. CÁLCULOS COMUNES PARA BRIBONES (Ladrón y Bardo)
-# =========================================================================
-armadura_actual = "cuero" 
-raza_adj = AJUSTE_LADRON_RAZA.get(raza_pj.lower(), [0]*8)
-
-# Lógica de búsqueda de Destreza (se queda aquí afuera)
-claves_des = sorted([k for k in AJUSTE_LADRON_DES.keys() if k <= destreza_pj])
-des_adj = AJUSTE_LADRON_DES[claves_des[-1]] if claves_des else [0]*8
-
-# Ajuste de Armadura
-arm_adj = TABLA_PENALIZACION_ARMADURA.get(armadura_actual, [0]*8)
-
-# =========================================================================
-# 2. REPARTO DE PUNTOS: LADRÓN
-# =========================================================================
+# Preparados de puntos profecion ladron
 if grupo_pj == "bribon" and clase_pj.lower() != "bardo":
+    # --- MOVER ESTO AQUÍ PARA QUE EL REPARTIDOR LAS VEA ---
     nombres_hab = ["Vaciar Bolsillos", "Abrir Cerraduras", "Encontrar Trampas", 
                    "Sigilo", "Ocultarse", "Escuchar Ruidos", "Trepar Paredes", "Leer Lenguajes"]
+    
+    # 1. Bases fijas del Ladrón
     bases_fijas = [15, 10, 5, 10, 5, 15, 60, 0]
     
+    # 2. Ajustes de Raza y Destreza (usando las tablas que ya tenés arriba)
+    raza_adj = AJUSTE_LADRON_RAZA.get(raza_pj.lower(), [0]*8)
+    
+    # Lógica de búsqueda de Destreza
+    claves_des = sorted([k for k in AJUSTE_LADRON_DES.keys() if k <= destreza_pj])
+    des_adj = AJUSTE_LADRON_DES[claves_des[-1]] if claves_des else [0]*8
+    
+    # Ajuste de Armadura (por ahora fijo en cuero)
+    armadura_actual = "cuero" 
+    arm_adj = TABLA_PENALIZACION_ARMADURA.get(armadura_actual, [0]*8)
+    
+    # --- AHORA SÍ EMPIEZA EL REPARTO ---
     pts_totales = 60 + ((nivel_pj - 1) * 30)
     tope_por_hab = 30 + ((nivel_pj - 1) * 15)
+    
     puntos_invertidos = [0] * 8
     puntos_restantes = pts_totales
     
-    print(f"\n>>> REPARTO DE PUNTOS DE LADRÓN ({pts_totales} pts)")
+    print(f"\n>>> REPARTO DE PUNTOS DE LADRÓN ({pts_totales} pts disponibles)")
+    
+    print(f"\n>>> REPARTO DE PUNTOS DE LADRÓN ({pts_totales} pts disponibles)")
+    print(f">>> Tu límite máximo por habilidad para nivel {nivel_pj} es: {tope_por_hab}%")
 
     for i in range(8):
+        # Regla de Leer Lenguajes: solo nivel 4+
         if i == 7 and nivel_pj < 4:
+            print(f"\n- {nombres_hab[i]}: Bloqueado hasta nivel 4.")
             continue
+            
         if puntos_restantes <= 0:
-            break
+            puntos_invertidos[i] = 0 # Aseguramos que sea 0 si no hay puntos
+            continue
 
+        # CALCULO PREVIO para que el jugador sepa dónde está parado
         subtotal_previo = bases_fijas[i] + raza_adj[i] + des_adj[i] + arm_adj[i]
 
         while True:
-            print(f"\nHab: {nombres_hab[i]} | Subtotal: {subtotal_previo}% | Restan: {puntos_restantes}")
-            gasto = int(input(f"¿Puntos para {nombres_hab[i]}? (Máx {tope_por_hab}): "))
+            print(f"\nHab: {nombres_hab[i]} | Subtotal actual (Base+Raza+DES+Arm): {subtotal_previo}%")
+            print(f"Puntos restantes para repartir: {puntos_restantes}")
+            gasto = int(input(f"¿Cuántos puntos querés sumarle? (Máx {tope_por_hab}): "))
             
-            if 0 <= gasto <= puntos_restantes and gasto <= tope_por_hab:
+            if gasto < 0:
+                print("No podés poner puntos negativos.")
+            elif gasto > puntos_restantes:
+                print(f"No tenés tantos puntos. Te quedan {puntos_restantes}.")
+            elif gasto > tope_por_hab:
+                print(f"¡Límite excedido! Máximo {tope_por_hab} por nivel.")
+            else:
                 puntos_invertidos[i] = gasto
                 puntos_restantes -= gasto
                 break
-            else:
-                print("Cantidad inválida o excede el límite.")
 
-# =========================================================================
-# 3. REPARTO DE PUNTOS: BARDO
-# =========================================================================
-if clase_pj.lower() == "bardo":
-    pts_disponibles = 20 + ((nivel_pj - 1) * 15)
-    puntos_invertidos_bardo = [0, 0, 0, 0]
-    puntos_restantes = pts_disponibles
-
-    # Mapeamos qué columna de raza/des/arm le toca a cada hab del bardo
-    # Escalar(6), Ruidos(5), Bolsillos(0), Lenguajes(7)
-    indices_bardo = [6, 5, 0, 7]
-
-    print(f"\n>>> REPARTO DE PUNTOS DE BARDO ({pts_disponibles} pts)")
-
-    for i in range(4):
-        if puntos_restantes <= 0:
-            break
-            
-        # Calculamos el subtotal para que el bardo sepa cuánto tiene antes de gastar
-        idx = indices_bardo[i]
-        subtotal_previo = BASES_BARDO[i] + raza_adj[idx] + des_adj[idx] + arm_adj[idx]
-
-        while True:
-            print(f"\nHab: {NOMBRES_BARDO[i]} | Subtotal: {subtotal_previo}% | Restan: {puntos_restantes}")
-            gasto = int(input(f"¿Puntos para {NOMBRES_BARDO[i]}?: "))
-            
-            if 0 <= gasto <= puntos_restantes:
-                puntos_invertidos_bardo[i] = gasto
-                puntos_restantes -= gasto
-                break
-            else:
-                print(f"Cantidad inválida. Te quedan {puntos_restantes} puntos.")
-
-# Calculo GACO por clase 
+# Calculo GACO por clase
 gaco_pj = calcular_gaco_base(nivel_pj, grupo_pj)
 # Calculamos los GAC0 finales para que el jugador no piense
 gaco_cac = gaco_pj - bonos_fue['golpe']
@@ -784,52 +760,19 @@ for hab in habilidades:
 print("!" * 62)
 
 
-# =========================================================================
-# IMPRESIÓN FINAL DE HABILIDADES
-# =========================================================================
-
-# --- CASO 1: SI ES LADRÓN ---
-if clase_pj.lower() == "ladron":
+if grupo_pj == "bribon":
     print("\n" + "="*82)
-    print(f" HABILIDADES DE LADRÓN (Armadura: {armadura_actual.capitalize()})")
+    print(f" HABILIDADES DE BRIBÓN (Armadura: {armadura_actual.capitalize()})")
     print("-" * 82)
     print(f"{'HABILIDAD':<18} | {'BS':>3} | {'RZ':>3} | {'DS':>3} | {'AR':>3} | {'PTS':>3} | {'TOTAL':>5}")
     print("-" * 82)
     
     for i in range(8):
+        # Usamos las variables que ya vienen cargadas desde arriba
         total_habilidad = bases_fijas[i] + raza_adj[i] + des_adj[i] + arm_adj[i] + puntos_invertidos[i]
+        
         print(f"{nombres_hab[i]:<18} | {bases_fijas[i]:>2}% | {raza_adj[i]:>2}% | {des_adj[i]:>2}% | {arm_adj[i]:>2}% | {puntos_invertidos[i]:>3}% | {total_habilidad:>4}%")
     
     print("-" * 82)
-    print(" >> Puntos de Ladrón calculados correctamente.")
-    print("="*82)
-
-# --- CASO 2: SI ES BARDO ---
-if clase_pj.lower() == "bardo":
-    print("\n" + "="*82)
-    print(f" HABILIDADES DE BARDO (Armadura: {armadura_actual.capitalize()})")
-    print("-" * 82)
-    print(f"{'HABILIDAD':<18} | {'BS':>3} | {'RZ':>3} | {'DS':>3} | {'AR':>3} | {'PTS':>3} | {'TOTAL':>5}")
-    print("-" * 82)
-    
-    # El orden de la Tabla 33 que me pasaste: Escalar(6), Ruidos(5), Bolsillos(0), Lenguajes(7)
-    indices_bardo = [6, 5, 0, 7]
-    
-    for i in range(4):
-        idx = indices_bardo[i]
-        total_bardo = BASES_BARDO[i] + raza_adj[idx] + des_adj[idx] + arm_adj[idx] + puntos_invertidos_bardo[i]
-        
-        print(f"{NOMBRES_BARDO[i]:<18} | {BASES_BARDO[i]:>2}% | {raza_adj[idx]:>2}% | {des_adj[idx]:>2}% | {arm_adj[idx]:>2}% | {puntos_invertidos_bardo[i]:>3}% | {total_bardo:>4}%")
-    
-    print("-" * 82)
-    print(" CAPACIDADES ARTÍSTICAS:")
-    print(" * Influir Masas: Puede cambiar la actitud de un grupo (Chequeo de Carisma).")
-    print(" * Contracanto: Protege al grupo de ataques sónicos si empieza a cantar antes.")
-    print(" * Inspiración: +1 al Ataque y Moral de aliados tras 3 asaltos de música.")
-    print(f" >> Conocimiento de Leyendas: {nivel_pj * 5}% (Identificar objetos de forma general / saber historia)")
-    
-    if nivel_pj >= 2:
-        print(f" * Magia: Tienes acceso a hechizos de Mago (Nivel {nivel_pj - 1} de lanzador).")
-    else:
-        print(" * Magia: Aún no tienes el nivel suficiente para lanzar hechizos.")
+    print(f" >> Puntos totales invertidos correctamente.")
     print("="*82)
