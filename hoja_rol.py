@@ -62,7 +62,7 @@ TABLA_CLASES = {
     # LUCHADORES
     "guerrero":   {"req": {"FUE": 9}, "die": 10, "grupo": "luchador"},
     "paladin":    {"req": {"FUE": 12, "CON": 9, "SAB": 13, "CAR": 17}, "die": 10, "grupo": "luchador"},
-    "explorador": {"req": {"FUE": 13, "DES": 13, "CON": 14, "SAB": 14}, "die": 10, "grupo": "luchador"},
+    "guardabosques": {"req": {"FUE": 13, "DES": 13, "CON": 14, "SAB": 14}, "die": 10, "grupo": "luchador"},
     
     # HECHICERO
     "mago":       {"req": {"INT": 9}, "die": 4, "grupo": "hechicero"},
@@ -282,6 +282,22 @@ TABLA_PENALIZACION_ARMADURA = {
 # Tabla 33 - Bases iniciales del Bardo
 BASES_BARDO = [50, 20, 10, 5]  # [Escalar, Ruidos, Bolsillos, Lenguajes]
 NOMBRES_BARDO = ["Escalar Paredes", "Detectar Ruidos", "Vaciar Bolsillos", "Leer Lenguajes"]
+
+# Tablas del Guardabosques (Ranger)
+# Formato -> Nivel: [Ocultarse, Moverse]
+TABLA_RANGER = {
+    1: [10, 15], 2: [15, 21], 3: [20, 27], 4: [25, 33], 
+    5: [31, 40], 6: [37, 47], 7: [43, 55], 8: [49, 62],
+    9: [56, 70], 10: [63, 78], 11: [70, 86], 12: [77, 94],
+    13: [85, 99], 14: [93, 99], 15: [99, 99], 16: [99, 99]
+}
+# Nivel del Ranger: [Nivel Lanzador, Hechizos Nivel 1, Nivel 2, Nivel 3]
+MAGIA_RANGER = {
+    8:  [1, 1, 0, 0], 9:  [2, 2, 0, 0], 10: [3, 2, 1, 0],
+    11: [4, 2, 1, 0], 12: [5, 2, 2, 1], 13: [6, 3, 2, 1],
+    14: [7, 3, 2, 2], 15: [8, 3, 3, 2], 16: [9, 3, 3, 3]
+}
+
 # --- TABLAS DE SALVACIÓN ---
 # (Paralización/Veneno, Vara/Vara/Cetro, Petrificación, Arma de Aliento, Conjuro)
 TS_LUCHADOR = {
@@ -731,6 +747,30 @@ if clase_pj.lower() == "bardo":
             else:
                 print(f"Cantidad inválida. Te quedan {puntos_restantes} puntos.")
 
+# =========================================================================
+# 4. GUARDABOSQUES
+# =========================================================================
+if clase_pj.lower() == "guardabosques":
+    bases_rng = TABLA_RANGER.get(nivel_pj, [99, 99])
+    
+    # Ajustes (igual que antes)
+    adj_raza_rng = [raza_adj[4], raza_adj[3]] 
+    adj_des_rng = [des_adj[4], des_adj[3]]
+    adj_arm_rng = [arm_adj[4], arm_adj[3]]
+    
+    # Verificamos armadura
+    armaduras_permitidas = ["ninguna", "cuero", "cuero tachonado", "acolchada"]
+    if armadura_actual.lower() not in armaduras_permitidas:
+        final_ocultarse = 0
+        final_sigilo = 0
+    else:
+        final_ocultarse = bases_rng[0] + adj_raza_rng[0] + adj_des_rng[0] + adj_arm_rng[0]
+        final_sigilo = bases_rng[1] + adj_raza_rng[1] + adj_des_rng[1] + adj_arm_rng[1]
+
+    # Calculamos la versión urbana (no natural) simplemente dividiendo por 2
+    urbano_ocultarse = final_ocultarse // 2
+    urbano_sigilo = final_sigilo // 2
+
 # Calculo GACO por clase 
 gaco_pj = calcular_gaco_base(nivel_pj, grupo_pj)
 # Calculamos los GAC0 finales para que el jugador no piense
@@ -827,9 +867,36 @@ if clase_pj.lower() == "bardo":
     print(" * Contracanto: Protege al grupo de ataques sónicos si empieza a cantar antes.")
     print(" * Inspiración: +1 al Ataque y Moral de aliados tras 3 asaltos de música.")
     print(f" >> Conocimiento de Leyendas: {nivel_pj * 5}% (Identificar objetos de forma general / saber historia)")
-    
+
     if nivel_pj >= 2:
         print(f" * Magia: Tienes acceso a hechizos de Mago (Nivel {nivel_pj - 1} de lanzador).")
     else:
         print(" * Magia: Aún no tienes el nivel suficiente para lanzar hechizos.")
     print("="*82)
+
+# --- CASO 1: SI ES GUARDABOSQUES ---    
+if clase_pj.lower() == "guardabosques":
+    print("\n" + "="*82)
+    print(f" HABILIDADES DE GUARDABOSQUES (Armadura: {armadura_actual.capitalize()})")
+    print("-" * 82)
+    print(f"{'HABILIDAD':<18} | {'BS':>3} | {'RZ':>3} | {'DS':>3} | {'AR':>3} | {'NAT':>5} | {'URB':>5}")
+    print("-" * 82)
+
+    print(f"{'Ocultarse':<18} | {bases_rng[0]:>2}% | {adj_raza_rng[0]:>2}% | {adj_des_rng[0]:>2}% | {adj_arm_rng[0]:>2}% | {final_ocultarse:>4}% | {urbano_ocultarse:>4}%")
+    print(f"{'Sigilo':<18} | {bases_rng[1]:>2}% | {adj_raza_rng[1]:>2}% | {adj_des_rng[1]:>2}% | {adj_arm_rng[1]:>2}% | {final_sigilo:>4}% | {urbano_sigilo:>4}%")
+    
+    print("-" * 82)
+    print(" CAPACIDADES DE CLASE:")
+    print(" * Enemigo Racial: +4 al ataque contra tu enemigo elegido.")
+    print(" * Empatía Animal: Puede calmar animales (Chequeo de Carisma con penalización).")
+    
+    # Lógica de Magia que pasaste
+if nivel_pj >= 8:
+    magia = MAGIA_RANGER.get(nivel_pj, [9, 3, 3, 3])
+    print(f"\n >>> MAGIA (Esferas: Animal y Vegetal)")
+    print(f" Nivel de lanzador: {magia[0]}")
+    print(f" Espacios de conjuros: [Nivel 1: {magia[1]}] [Nivel 2: {magia[2]}] [Nivel 3: {magia[3]}]")
+    print(" [!] No recibe bonos por Sabiduría ni usa pergaminos de clérigo.")
+else:
+    print("\n * Magia: Podrás lanzar conjuros de sacerdote a partir del nivel 8.")
+print("="*82)
