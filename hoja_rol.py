@@ -771,6 +771,58 @@ if clase_pj.lower() == "guardabosques":
     urbano_ocultarse = final_ocultarse // 2
     urbano_sigilo = final_sigilo // 2
 
+# =========================================================================
+# 5. HECHICEROS (Mago y Especialista)
+# =========================================================================
+if grupo_pj == "hechicero":
+    print("\n" + "="*82)
+    es_especialista = clase_pj.lower() != "mago"
+    tipo_mago = "MAGO ESPECIALISTA" if es_especialista else "MAGO"
+    print(f" CAPACIDADES DE {tipo_mago} (Libro de Hechizos)")
+    print("-" * 82)
+    
+    # Datos de INT
+    limite_lvl_conjuro = bonos_int["nivel_max"]
+    max_por_nivel = bonos_int["max_conjuros"]
+    chance_base = int(bonos_int["prob_aprender"].replace('%',''))
+
+    print(f" > Máximo Nivel de Conjuro: {limite_lvl_conjuro}")
+    print(f" > Capacidad por Nivel: {max_por_nivel} conjuros")
+    
+    if es_especialista:
+        print(f" > Prob. Aprender: {chance_base + 15}% (Escuela propia) / {chance_base - 15}% (Otras)")
+        print(f" > Bono: +1 a salvaciones contra escuela propia / Enemigos tienen -1 vs tus conjuros.")
+        print(f" > [!] Slot Extra: Tienes +1 espacio por nivel para conjuros de tu escuela.")
+    else:
+        print(f" > Prob. Aprender Conjuro: {chance_base}%")
+
+    # Tabla Expandida hasta Nivel 20 (Nivel Personaje: [Slots Nivel 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    PROGRESION_MAGO = {
+        1: [1], 2: [2], 3: [2, 1], 4: [3, 2], 5: [4, 2, 1],
+        6: [4, 2, 2], 7: [4, 3, 2, 1], 8: [4, 3, 3, 2], 9: [4, 3, 3, 2, 1],
+        10: [4, 4, 3, 2, 2], 11: [4, 4, 4, 3, 3], 12: [4, 4, 4, 4, 4, 1],
+        13: [5, 5, 5, 4, 4, 2], 14: [5, 5, 5, 4, 4, 2, 1], 15: [5, 5, 5, 5, 5, 2, 1],
+        16: [5, 5, 5, 5, 5, 3, 2, 1], 17: [5, 5, 5, 5, 5, 3, 3, 2],
+        18: [5, 5, 5, 5, 5, 3, 3, 2, 1], 19: [5, 5, 5, 5, 5, 3, 3, 3, 1],
+        20: [5, 5, 5, 5, 5, 4, 3, 3, 2]
+    }
+    
+    slots = PROGRESION_MAGO.get(nivel_pj, [1])
+    
+    print("\n >>> CONJUROS MEMORIZADOS POR DÍA:")
+    for i, cant in enumerate(slots):
+        nivel_conjuro = i + 1
+        # El especialista suma 1 si el nivel de conjuro es menor o igual al que puede tirar
+        total = cant + 1 if es_especialista else cant
+        
+        # Alerta si su INT no le deja tirar ese nivel
+        aviso_int = " (Requiere más INT)" if nivel_conjuro > limite_lvl_conjuro else ""
+        
+        print(f"   Nivel {nivel_conjuro}: {total} espacio(s){aviso_int}")
+
+    print("-" * 82)
+    print("="*82)
+
 # Calculo GACO por clase 
 gaco_pj = calcular_gaco_base(nivel_pj, grupo_pj)
 # Calculamos los GAC0 finales para que el jugador no piense
